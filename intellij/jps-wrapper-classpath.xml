@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.example</groupId>
+    <artifactId>test</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <repositories>
+        <repository>
+            <id>intellij-releases</id>
+            <url>https://www.jetbrains.com/intellij-repository/releases</url>
+        </repository>
+        <repository>
+            <id>intellij-dependencies</id>
+            <url>https://cache-redirector.jetbrains.com/intellij-dependencies</url>
+        </repository>
+    </repositories>
+
+    <properties>
+        <kotlin.version>1.6.10</kotlin.version>
+        <intellij.version>212.5457.46</intellij.version>
+        <jps.wrapper.version>0.16</jps.wrapper.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib-jdk8</artifactId>
+            <version>${kotlin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.jetbrains.intellij.tools</groupId>
+            <artifactId>jps-build-standalone</artifactId>
+            <version>${intellij.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.jetbrains.intellij.idea</groupId>
+            <artifactId>jps-wrapper</artifactId>
+            <version>${jps.wrapper.version}</version>
+        </dependency>
+    </dependencies>
+</project>

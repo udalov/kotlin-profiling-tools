@@ -1,36 +1,64 @@
 #!/usr/bin/env bash
 
 set -e
+shopt -s globstar
 
-# Change these paths:
-# Path to intellij sources. Snapshot will be placed in the "snapshots" subdirectory.
+# Compiles intellij with JPS, using the bleeding edge Kotlin compiler, and takes snapshot with async-profiler.
+# Before using this script, verify the paths and settings in the config section below,
+# and run the following command in the Kotlin project:
+#
+#     ./gradlew dist :jps:jps-plugin:jar publishIdeArtifacts -Ppublish.ide.plugin.dependencies=true
+
+# -----------------------------------------------------
+# Config
+
+# Path to the intellij project. Snapshot will be placed in the "snapshots" subdirectory.
 INTELLIJ=$HOME/intellij
-# Path to the Kotlin compiler which will be used for the build.
-KOTLIN_COMPILER=$HOME/kotlin/dist/kotlinc
-# Path to the Kotlin IDE plugin which will be used for the build.
-# NOTE that the compiler inside it will be REPLACED with the compiler specified above.
-# TODO: get rid of this, use JPS plugin built in main Kotlin repo.
-KOTLIN_PLUGIN_HOME=$HOME/.local/share/JetBrains/IntelliJIdea2021.2/Kotlin
+# Path to the Kotlin project.
+KOTLIN=$HOME/kotlin
 # Path to IntelliJ IDEA which will be used for the build (Groovy plugin will be loaded from here).
-IDEA_HOME=$HOME/.local/share/JetBrains/Toolbox/apps/IDEA-U/ch-0/212.5457.46
+# TODO: take Groovy plugin from Maven too.
+IDEA_HOME=$HOME/.local/share/JetBrains/Toolbox/apps/IDEA-U/ch-1/213.6777.52
 # JDK which will be used for the build. Note that IntelliJ build requires JDK 11.
 JAVA=/usr/lib/jvm/java-11-microsoft
+# Bitmask for CPU cores to be used. Set to 0xFFFFFFFF to use 32 cores. See `man taskset` for more info.
+CPU_CONFIG=0xFF000000 
+# Memory for the build process.
+XMX=-Xmx12G
+
+# Comment to disable snapshot generation.
+SNAPSHOT=-agentpath:$HOME/async-profiler/build/libasyncProfiler.so=start\,event=cpu\,interval=10ms\,threads\,file=$INTELLIJ/snapshots/snapshot.collapsed
 
 # Uncomment to compile a single module with its dependencies.
-BUILD_MODULE=-Dbuild.moduleName=intellij.platform.util.rt
+# BUILD_MODULE=-Dbuild.moduleName=intellij.platform.util.rt
 
-SNAPSHOT_TEMPORARY_OUTPUT=$INTELLIJ/snapshots/snapshot.collapsed
-SNAPSHOT=-agentpath:$HOME/async-profiler/build/libasyncProfiler.so=start\,event=cpu\,interval=10ms\,threads\,file=$SNAPSHOT_TEMPORARY_OUTPUT
+# Uncomment to enable debug.
+# JDWP='-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
 
-JPS_CLASSPATH=$(mvn -q -f jps-wrapper-classpath.xml dependency:build-classpath -Dmdep.outputFile=/tmp/idea-jps-classpath.txt && cat /tmp/idea-jps-classpath.txt)
-KOTLIN_JPS_PLUGIN=$KOTLIN_PLUGIN_HOME/lib/jps/kotlin-jps-plugin.jar:$KOTLIN_PLUGIN_HOME/lib/kotlin-reflect.jar:$KOTLIN_PLUGIN_HOME/lib/kotlin-common.jar:$(echo $KOTLIN_PLUGIN_HOME/lib/kotlin-compiler-common-for-ide-*.jar):$(echo $KOTLIN_PLUGIN_HOME/lib/kotlin-compiler-fe10-for-ide-*.jar)
-GROOVY_JPS_PLUGIN=$IDEA_HOME/plugins/Groovy/lib/groovy-jps.jar:$IDEA_HOME/plugins/Groovy/lib/groovy-constants-rt.jar
-OUTPUT=$(dirname "$(realpath -s "$0")")/out
-rm -rf $OUTPUT && mkdir $OUTPUT
-mkdir -p $INTELLIJ/snapshots
+# -----------------------------------------------------
 
-time taskset 0xFF000000 $JAVA/bin/java \
-    -Xmx12G $SNAPSHOT \
+kotlinHome=$KOTLIN/dist/kotlinc
+
+jpsClasspath=$(mvn -q -f jps-wrapper-classpath.xml dependency:build-classpath -Dmdep.outputFile=/tmp/idea-jps-classpath.txt && cat /tmp/idea-jps-classpath.txt)
+
+kjps1=($KOTLIN/jps/jps-plugin/build/libs/jps-plugin-*.jar)
+kjps2=($KOTLIN/jps/jps-common/build/libs/jps-common-*.jar)
+[ -f $kjps1 ] || { echo "Error: JPS plugin jar not found. Run: ./gradlew :jps:jps-plugin:jar"; exit 1; }
+[ -f $kjps2 ] || { echo "Error: JPS common jar not found. Run: ./gradlew :jps:jps-plugin:jar"; exit 1; }
+kc1=($KOTLIN/build/repo/org/jetbrains/kotlin/kotlin-compiler-common-for-ide/**/kotlin-compiler-common-for-ide-*.jar)
+kc2=($KOTLIN/build/repo/org/jetbrains/kotlin/kotlin-compiler-fe10-for-ide/**/kotlin-compiler-fe10-for-ide-*.jar)
+[ -f $kc1 ] || { echo "Error: kotlin-compiler-common-for-ide jar not found. Run: ./gradlew publishIdeArtifacts -Ppublish.ide.plugin.dependencies=true"; exit 1; }
+[ -f $kc2 ] || { echo "Error: kotlin-compiler-fe10-for-ide jar not found. Run: ./gradlew publishIdeArtifacts -Ppublish.ide.plugin.dependencies=true"; exit 1; }
+kotlinJpsPlugin=$kjps1:$kjps2:$kc1:$kc2
+
+groovyJpsPlugin=$IDEA_HOME/plugins/Groovy/lib/groovy-jps.jar:$IDEA_HOME/plugins/Groovy/lib/groovy-constants-rt.jar
+
+output=$(dirname "$(realpath -s "$0")")/out
+rm -rf $output && mkdir $output
+if [[ -n "$SNAPSHOT" ]]; then mkdir -p $INTELLIJ/snapshots; fi
+
+time taskset $CPU_CONFIG $JAVA/bin/java \
+    $JDWP $XMX $SNAPSHOT \
     -Dgroovyc.in.process=true \
     -Dgroovyc.asm.resolving.only=false \
     -Djps.use.default.file.logging=false \
@@ -40,21 +68,21 @@ time taskset 0xFF000000 $JAVA/bin/java \
     -Dbuild.withProgress=true \
     -Dbuild.includeRuntimeDependencies=false \
     -Dbuild.includeTests=true \
-    -Dbuild.kotlinHome=$KOTLIN_PLUGIN_HOME \
+    -Dbuild.kotlinHome=$kotlinHome \
     -Dbuild.projectPath=$INTELLIJ \
-    -Dbuild.outputPath=$OUTPUT \
-    -Dbuild.classpathOutputFilePath=$OUTPUT/classpath.txt \
+    -Dbuild.outputPath=$output \
+    -Dbuild.classpathOutputFilePath=$output/classpath.txt \
     $BUILD_MODULE \
     -Dfile.encoding=UTF-8 \
-    -classpath $JPS_CLASSPATH:$KOTLIN_JPS_PLUGIN:$GROOVY_JPS_PLUGIN \
+    -classpath $jpsClasspath:$kotlinJpsPlugin:$groovyJpsPlugin \
     jps.wrapper.MainKt \
-    >$OUTPUT/log.txt 2>&1
+    >$output/log.txt 2>&1
 
 if [[ -n "$SNAPSHOT" ]]; then
-    SNAPSHOT_NAME=$1
-    SNAPSHOT_NAME=${SNAPSHOT_NAME:-snapshot}
-    RESULT=$INTELLIJ/snapshots/$SNAPSHOT_NAME.zip
-    $KOTLIN_COMPILER/bin/kotlinc -script ../preprocess-snapshot.kts -- $RESULT $SNAPSHOT_TEMPORARY_OUTPUT
-    rm $SNAPSHOT_TEMPORARY_OUTPUT
-    echo "snapshot: $RESULT"
+    snapshotName=$1
+    snapshotName=${snapshotName:-snapshot}
+    result=$INTELLIJ/snapshots/$snapshotName.zip
+    $kotlinHome/bin/kotlinc -script ../preprocess-snapshot.kts -- $result $INTELLIJ/snapshots/snapshot.collapsed
+    rm $INTELLIJ/snapshots/snapshot.collapsed
+    echo "snapshot: $result"
 fi

@@ -19,8 +19,8 @@
 
     <properties>
         <kotlin.version>1.6.10</kotlin.version>
-        <intellij.version>212.5457.46</intellij.version>
-        <jps.wrapper.version>0.16</jps.wrapper.version>
+        <intellij.version>213.6777.52</intellij.version>
+        <jps.wrapper.version>0.19</jps.wrapper.version>
     </properties>
 
     <dependencies>
@@ -30,10 +30,22 @@
             <version>${kotlin.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-reflect</artifactId>
+            <version>${kotlin.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.jetbrains.intellij.tools</groupId>
             <artifactId>jps-build-standalone</artifactId>
             <version>${intellij.version}</version>
         </dependency>
+        <!-- TODO: investigate why it doesn't work.
+        <dependency>
+            <groupId>com.jetbrains.intellij.groovy</groupId>
+            <artifactId>groovy-jps</artifactId>
+            <version>${intellij.version}</version>
+        </dependency>
+        -->
         <dependency>
             <groupId>com.jetbrains.intellij.idea</groupId>
             <artifactId>jps-wrapper</artifactId>

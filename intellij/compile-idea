@@ -18,11 +18,11 @@ INTELLIJ=$HOME/intellij
 KOTLIN=$HOME/kotlin
 # Path to IntelliJ IDEA which will be used for the build (Groovy plugin will be loaded from here).
 # TODO: take Groovy plugin from Maven too.
-IDEA_HOME=$HOME/.local/share/JetBrains/Toolbox/apps/IDEA-U/ch-1/213.6777.52
-# JDK which will be used for the build. Note that IntelliJ build requires JDK 11.
-JAVA=/usr/lib/jvm/java-11-microsoft
+IDEA_HOME=$HOME/.local/share/JetBrains/Toolbox/apps/IDEA-U/ch-1/222.3739.54
+# JDK which will be used for the build. Note that IntelliJ build requires JDK 17.
+JAVA=/usr/lib/jvm/java-17-amazon-corretto
 # Bitmask for CPU cores to be used. Set to 0xFFFFFFFF to use 32 cores. See `man taskset` for more info.
-CPU_CONFIG=0xFF000000 
+CPU_CONFIG=0xFF000000
 # Memory for the build process.
 XMX=-Xmx12G
 
@@ -37,18 +37,22 @@ XMX=-Xmx12G
 
 # -----------------------------------------------------
 
+
+
+
+
 kotlinHome=$KOTLIN/dist/kotlinc
 
 jpsClasspath=$(mvn -q -f jps-wrapper-classpath.xml dependency:build-classpath -Dmdep.outputFile=/tmp/idea-jps-classpath.txt && cat /tmp/idea-jps-classpath.txt)
 
 kjps1=($KOTLIN/jps/jps-plugin/build/libs/jps-plugin-*.jar)
 kjps2=($KOTLIN/jps/jps-common/build/libs/jps-common-*.jar)
-[ -f $kjps1 ] || { echo "Error: JPS plugin jar not found. Run: ./gradlew :jps:jps-plugin:jar"; exit 1; }
-[ -f $kjps2 ] || { echo "Error: JPS common jar not found. Run: ./gradlew :jps:jps-plugin:jar"; exit 1; }
+[ -f $kjps1 ] || { echo "Error: JPS plugin jar not found. Run this in the Kotlin repo: ./gradlew :jps:jps-plugin:jar"; exit 1; }
+[ -f $kjps2 ] || { echo "Error: JPS common jar not found. Run this in the Kotlin repo: ./gradlew :jps:jps-plugin:jar"; exit 1; }
 kc1=($KOTLIN/build/repo/org/jetbrains/kotlin/kotlin-compiler-common-for-ide/**/kotlin-compiler-common-for-ide-*.jar)
 kc2=($KOTLIN/build/repo/org/jetbrains/kotlin/kotlin-compiler-fe10-for-ide/**/kotlin-compiler-fe10-for-ide-*.jar)
-[ -f $kc1 ] || { echo "Error: kotlin-compiler-common-for-ide jar not found. Run: ./gradlew publishIdeArtifacts -Ppublish.ide.plugin.dependencies=true"; exit 1; }
-[ -f $kc2 ] || { echo "Error: kotlin-compiler-fe10-for-ide jar not found. Run: ./gradlew publishIdeArtifacts -Ppublish.ide.plugin.dependencies=true"; exit 1; }
+[ -f $kc1 ] || { echo "Error: kotlin-compiler-common-for-ide jar not found. Run this in the Kotlin repo: ./gradlew publishIdeArtifacts -Ppublish.ide.plugin.dependencies=true"; exit 1; }
+[ -f $kc2 ] || { echo "Error: kotlin-compiler-fe10-for-ide jar not found. Run this in the Kotlin repo: ./gradlew publishIdeArtifacts -Ppublish.ide.plugin.dependencies=true"; exit 1; }
 kotlinJpsPlugin=$kjps1:$kjps2:$kc1:$kc2
 
 groovyJpsPlugin=$IDEA_HOME/plugins/Groovy/lib/groovy-jps.jar:$IDEA_HOME/plugins/Groovy/lib/groovy-constants-rt.jar

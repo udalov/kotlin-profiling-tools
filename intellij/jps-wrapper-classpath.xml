@@ -18,7 +18,7 @@
     </repositories>
 
     <properties>
-        <kotlin.version>1.6.10</kotlin.version>
+        <kotlin.version>1.7.10</kotlin.version>
         <intellij.version>213.6777.52</intellij.version>
         <jps.wrapper.version>0.19</jps.wrapper.version>
     </properties>

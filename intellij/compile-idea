@@ -18,7 +18,7 @@ INTELLIJ=$HOME/intellij
 KOTLIN=$HOME/kotlin
 # Path to IntelliJ IDEA which will be used for the build (Groovy plugin will be loaded from here).
 # TODO: take Groovy plugin from Maven too.
-IDEA_HOME=$HOME/.local/share/JetBrains/Toolbox/apps/IDEA-U/ch-1/222.3739.54
+IDEA_HOME=$HOME/.local/share/JetBrains/Toolbox/apps/IDEA-U/ch-1/222.4459.24
 # JDK which will be used for the build. Note that IntelliJ build requires JDK 17.
 JAVA=/usr/lib/jvm/java-17-amazon-corretto
 # Bitmask for CPU cores to be used. Set to 0xFFFFFFFF to use 32 cores. See `man taskset` for more info.
@@ -61,13 +61,14 @@ output=$(dirname "$(realpath -s "$0")")/out
 rm -rf $output && mkdir $output
 if [[ -n "$SNAPSHOT" ]]; then mkdir -p $INTELLIJ/snapshots; fi
 
+# TODO: build.incremental=false after KT-54651 is fixed.
 /usr/bin/time -o $output/time.txt -f "real=%e user=%U" taskset $CPU_CONFIG $JAVA/bin/java \
     $JDWP $XMX $SNAPSHOT \
     -Dgroovyc.in.process=true \
     -Dgroovyc.asm.resolving.only=false \
     -Djps.use.default.file.logging=false \
     -Didea.home.path=. \
-    -Dbuild.incremental=false \
+    -Dbuild.incremental=true \
     -Dbuild.parallel=true \
     -Dbuild.withProgress=true \
     -Dbuild.includeRuntimeDependencies=false \

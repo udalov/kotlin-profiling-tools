@@ -43,7 +43,7 @@ XMX=-Xmx12G
 
 kotlinHome=$KOTLIN/dist/kotlinc
 
-jpsClasspath=$(mvn -q -f jps-wrapper-classpath.xml dependency:build-classpath -Dmdep.outputFile=/tmp/idea-jps-classpath.txt && cat /tmp/idea-jps-classpath.txt)
+jpsClasspath=$(mvn -q -f jps-wrapper-classpath.xml exec:exec -Dexec.executable=echo -Dexec.args="%classpath")
 
 kjps1=($KOTLIN/jps/jps-plugin/build/libs/jps-plugin-*.jar)
 kjps2=($KOTLIN/jps/jps-common/build/libs/jps-common-*.jar)
@@ -76,7 +76,6 @@ if [[ -n "$SNAPSHOT" ]]; then mkdir -p $INTELLIJ/snapshots; fi
     -Dbuild.kotlinHome=$kotlinHome \
     -Dbuild.projectPath=$INTELLIJ \
     -Dbuild.outputPath=$output \
-    -Dbuild.classpathOutputFilePath=$output/classpath.txt \
     $BUILD_MODULE \
     -Dfile.encoding=UTF-8 \
     -classpath $jpsClasspath:$kotlinJpsPlugin:$groovyJpsPlugin \
